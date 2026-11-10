@@ -1,0 +1,578 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Canopy Timer</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one calm column. Header with coins, tab nav (bottom bar on phones, inline on wide screens), views below. */
+:root{
+  --bg:#ECF1EC; --surface:#F8FAF7; --surface2:#E0E8E0; --ink:#15221B; --muted:#59695F; --line:#CCD7CE;
+  --accent:#2B7A4B; --accent-ink:#FFFFFF; --coin:#B4760F; --danger:#B03C2C; --ground:#CBD8C8;
+  --f-display:'Bricolage Grotesque','Avenir Next','Segoe UI',system-ui,sans-serif;
+  --f-body:'DM Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --f-mono:'DM Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1613; --surface:#16211C; --surface2:#1F2D26; --ink:#E4EFE7; --muted:#92A599; --line:#2A3A32;
+    --accent:#5DBB84; --accent-ink:#08150E; --coin:#E3A93A; --danger:#E27564; --ground:#24352C; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1613; --surface:#16211C; --surface2:#1F2D26; --ink:#E4EFE7; --muted:#92A599; --line:#2A3A32;
+  --accent:#5DBB84; --accent-ink:#08150E; --coin:#E3A93A; --danger:#E27564; --ground:#24352C; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body);-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.app{max-width:900px;margin:0 auto;padding-block:16px 104px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+.brand{display:flex;align-items:center;gap:10px;font:700 22px var(--f-display);letter-spacing:-.02em}
+.brand svg{width:30px;height:30px}
+.coinpill{display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:5px 13px 5px 8px;font:500 15px var(--f-mono)}
+.coinpill svg{width:20px;height:20px}
+nav{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);padding:6px max(8px,env(safe-area-inset-left,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-right,0px))}
+nav a{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;color:var(--muted);text-decoration:none;font:600 11px var(--f-body);border-radius:10px}
+nav a svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+nav a[aria-current="page"]{color:var(--accent)}
+@media (min-width:760px){
+  .top{display:grid;grid-template-columns:1fr auto 1fr}
+  .coinpill{justify-self:end}
+  nav{position:static;display:flex;gap:4px;background:var(--surface2);border:0;border-radius:14px;padding:4px}
+  nav a{flex-direction:row;gap:7px;padding:8px 14px;font-size:13px}
+  nav a[aria-current="page"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+  .app{padding-bottom:48px}
+}
+h2{font:700 24px/1.15 var(--f-display);letter-spacing:-.02em;margin:0 0 4px}
+h3{font:600 13px var(--f-body);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 10px}
+p{margin:0}
+.muted{color:var(--muted)}
+.stack{display:flex;flex-direction:column;gap:14px;min-width:0}
+.narrow{max-width:520px;margin:0 auto}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px;min-width:0}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.between{justify-content:space-between}
+.seg{display:inline-flex;background:var(--surface2);border-radius:12px;padding:3px}
+.seg button{border:0;background:transparent;color:var(--muted);padding:7px 14px;border-radius:9px;font:600 13px var(--f-body)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:transparent;border-radius:999px;padding:6px 12px;font:500 13px var(--f-body)}
+.chip i{width:9px;height:9px;border-radius:50%;display:inline-block;background:var(--muted)}
+.chip[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--surface))}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:9px 16px;font:600 14px var(--f-body)}
+.btn:hover{border-color:var(--muted)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.danger{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 45%,var(--line))}
+.btn.danger.armed{background:var(--danger);color:#fff;border-color:var(--danger)}
+.plant{width:100%;border:0;border-radius:16px;background:var(--accent);color:var(--accent-ink);padding:16px;font:700 18px var(--f-display);letter-spacing:-.01em}
+.plant:active{transform:translateY(1px)}
+.dialwrap{position:relative;width:min(300px,78vw);margin:6px auto}
+#dial{width:100%;height:auto;display:block;touch-action:none;user-select:none;-webkit-user-select:none}
+#dial[data-interactive="1"]{cursor:grab}
+.dialc{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;gap:2px;padding-top:6px}
+.dialc .tree{width:40%;line-height:0}
+.dialc .tree svg{width:100%;height:auto}
+.time{font:500 38px/1 var(--f-mono);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.sub{font-size:12px;color:var(--muted);text-align:center;max-width:150px}
+.presets{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:6px}
+.spRow{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px}
+.sp{flex:0 0 auto;width:58px;height:58px;padding:4px;border:1px solid var(--line);background:transparent;border-radius:14px;display:flex;align-items:center;justify-content:center;text-decoration:none;color:var(--muted);font:600 22px var(--f-body)}
+.sp svg{width:100%;height:100%}
+.sp[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--surface))}
+.bar{height:8px;border-radius:99px;background:var(--surface2);overflow:hidden}
+.bar>b{display:block;height:100%;background:var(--accent);border-radius:99px}
+.field{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.field:first-of-type{border-top:0}
+.field small{display:block;color:var(--muted);font-size:12.5px}
+select,input[type=number],input[type=text],textarea{background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-width:0}
+input[type=number]{width:84px}
+textarea{width:100%;min-height:96px;font:12px/1.4 var(--f-mono);resize:vertical}
+input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent)}
+input[type=range]{accent-color:var(--accent);width:150px}
+input[type=color]{width:34px;height:34px;padding:0;border:1px solid var(--line);border-radius:8px;background:none}
+.hint{font-size:13px;color:var(--muted);text-align:center;margin-top:6px}
+.result{display:flex;gap:16px;align-items:center}
+.result .big{width:104px;flex:0 0 auto;line-height:0}
+.result .big svg{width:100%;height:auto}
+.coinline{display:inline-flex;align-items:center;gap:6px;font:500 16px var(--f-mono);color:var(--coin)}
+.coinline svg{width:18px;height:18px}
+.pbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.pbar .lbl{font:600 15px var(--f-display);min-width:120px;text-align:center}
+.iconbtn{border:1px solid var(--line);background:var(--surface);border-radius:10px;width:36px;height:36px;font-size:18px;line-height:1}
+.iconbtn[disabled]{opacity:.35;cursor:not-allowed}
+.sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.sum .card{padding:14px}
+.sum b{display:block;font:600 24px var(--f-display);letter-spacing:-.02em}
+.sum span{font-size:12.5px;color:var(--muted)}
+.grp{margin-top:6px}
+.grp h3{margin:14px 0 6px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:6px}
+.grid.small{grid-template-columns:repeat(auto-fill,minmax(52px,1fr))}
+.tree{border:0;background:transparent;padding:2px;border-radius:12px;line-height:0}
+.tree svg{width:100%;height:auto}
+.tree[aria-pressed="true"]{background:color-mix(in srgb,var(--accent) 16%,var(--surface))}
+.empty{text-align:center;padding:30px 16px}
+.empty .big{width:90px;margin:0 auto 8px;line-height:0}
+.chartbox svg{width:100%;height:auto;display:block}
+.ct{font:11px var(--f-body);fill:var(--muted)}
+.tagrow{display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;align-items:center;margin:6px 0}
+.tagrow .name{display:flex;align-items:center;gap:8px;min-width:0}
+.tagrow .name i{width:10px;height:10px;border-radius:50%;flex:0 0 auto}
+.tagrow .name span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.shop{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.shop .card{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:14px}
+.shop .pic{width:96px;line-height:0}
+.shop .pic svg{width:100%;height:auto}
+.shop .nm{font:600 15px var(--f-display)}
+.ach{display:grid;gap:10px}
+.ach .it{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center}
+.ach .it .bar{grid-column:1/-1}
+.ach .it.got b{color:var(--accent)}
+.badge{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+#toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font:500 14px var(--f-body);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:40;max-width:min(92vw,420px);text-align:center}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+@media (min-width:760px){#toast{bottom:28px}}
+@media (prefers-reduced-motion:reduce){#toast{transition:none}.plant:active{transform:none}}
+</style>
+
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="15" fill="var(--accent)"/><path d="M16 26v-8M16 6l6 8h-3.5l4.5 6H9l4.5-6H10z" fill="var(--accent-ink)" stroke="var(--accent-ink)" stroke-width="1" stroke-linejoin="round"/></svg>
+      Canopy
+    </div>
+    <nav id="nav" aria-label="Sections"></nav>
+    <div class="coinpill" title="Your coins"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="var(--coin)"/><path d="M10 4.5c3 0 5 2 5 5-3 0-5-2-5-5zm0 11c-3 0-5-2-5-5 3 0 5 2 5 5z" fill="var(--bg)" opacity=".85"/></svg><span id="coins">0</span></div>
+  </header>
+  <main id="view"></main>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+'use strict';
+/* ---------- helpers ---------- */
+const $=(s,r)=>(r||document).querySelector(s);
+const uid=()=>Math.random().toString(36).slice(2,9);
+const pad=n=>String(n).padStart(2,'0');
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function fmtClock(ms,up){const t=Math.max(0,up?Math.floor(ms/1000):Math.ceil(ms/1000));const h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=t%60;return (h?h+':'+pad(m):pad(m))+':'+pad(s);}
+function fmtDur(min){min=Math.round(min);const h=Math.floor(min/60),m=min%60;return h?(m?h+'h '+m+'m':h+'h'):m+'m';}
+function sod(d){const x=new Date(d);x.setHours(0,0,0,0);return x;}
+function dayKey(t){const d=new Date(t);return d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate();}
+const COIN='<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="var(--coin)"/><path d="M10 4.5c3 0 5 2 5 5-3 0-5-2-5-5zm0 11c-3 0-5-2-5-5 3 0 5 2 5 5z" fill="var(--bg)" opacity=".85"/></svg>';
+
+/* ---------- data ---------- */
+const KEY='canopy.v1';
+const SP=[
+ {id:'oak',name:'Oak',cost:0,shape:'round',trunk:'#7B5533',c1:'#4C9A58',c2:'#37803F',c3:'#6DB873'},
+ {id:'pine',name:'Pine',cost:60,shape:'cone',trunk:'#6B4A2E',c1:'#2F7A57',c2:'#25644A'},
+ {id:'birch',name:'Birch',cost:90,shape:'birch',trunk:'#E9E5DA',c1:'#8CC565',c2:'#6FAE4F',c3:'#A8D681'},
+ {id:'cactus',name:'Cactus',cost:120,shape:'cactus',trunk:'#4F9A62',c1:'#4F9A62',c2:'#3E834F'},
+ {id:'cherry',name:'Cherry blossom',cost:150,shape:'round',trunk:'#6E4A3B',c1:'#F2A9C3',c2:'#E68AAE',c3:'#F9CBDC'},
+ {id:'maple',name:'Maple',cost:150,shape:'round',trunk:'#6B4630',c1:'#DB6A2E',c2:'#BF4E22',c3:'#EC8D4E'},
+ {id:'palm',name:'Palm',cost:180,shape:'palm',trunk:'#A07B49',c1:'#3FA06A',c2:'#2F8556'},
+ {id:'bamboo',name:'Bamboo',cost:200,shape:'bamboo',trunk:'#86BE6E',c1:'#6CAA55',c2:'#4E8D3F'},
+ {id:'willow',name:'Willow',cost:250,shape:'willow',trunk:'#6F5A3C',c1:'#93C47E',c2:'#74AA62'},
+ {id:'ginkgo',name:'Ginkgo',cost:300,shape:'round',trunk:'#76593A',c1:'#E7BC2F',c2:'#CF9F1C',c3:'#F2D460'},
+ {id:'baobab',name:'Baobab',cost:400,shape:'acacia',trunk:'#8B6A4A',c1:'#5E9C42',c2:'#4A8334'}
+];
+const SOUNDS=[['none','Silence'],['rain','Rain'],['wind','Forest wind'],['waves','Ocean waves'],['birds','Morning birds'],['fire','Fireplace'],['brown','Brown noise']];
+const spOf=id=>SP.find(x=>x.id===id)||SP[0];
+
+function defaults(){return{v:1,coins:0,sessions:[],unlocked:['oak'],ach:[],
+ tags:[{id:'t1',name:'Study',color:'#3B82C4'},{id:'t2',name:'Work',color:'#C9731B'},{id:'t3',name:'Reading',color:'#8A5CC9'},{id:'t4',name:'Exercise',color:'#D0485E'}],
+ settings:{goal:120,mode:'timer',minutes:25,species:'oak',tag:'t1',sound:'none',volume:0.5,theme:'system',wither:true,grace:15,breakMin:5,chime:true},
+ active:null};}
+function load(){const d=defaults();try{const raw=localStorage.getItem(KEY);if(raw){const o=JSON.parse(raw);return Object.assign(d,o,{settings:Object.assign(d.settings,o.settings||{})});}}catch(e){}return d;}
+let S=load();
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+
+/* ---------- tree art ---------- */
+const shapes={
+ round:(p,t)=>{const tw=2.6+3.2*t,th=14+22*t,cy=90-th-5*t,r=8+17*t;
+  return `<rect x="${50-tw/2}" y="${90-th}" width="${tw}" height="${th+1}" rx="1.4" fill="${p.trunk}"/>
+  <circle cx="${50-r*.62}" cy="${cy+r*.3}" r="${r*.68}" fill="${p.c2}"/><circle cx="${50+r*.62}" cy="${cy+r*.3}" r="${r*.68}" fill="${p.c2}"/>
+  <circle cx="50" cy="${cy}" r="${r}" fill="${p.c1}"/><circle cx="${50-r*.3}" cy="${cy-r*.3}" r="${r*.34}" fill="${p.c3||p.c1}" opacity=".55"/>`;},
+ birch:(p,t)=>{const tw=2.4+2.4*t,th=18+26*t,cy=90-th-3,rx=8+11*t,ry=10+15*t;let m='';
+  for(let i=0;i<4;i++){m+=`<rect x="${50-tw/2}" y="${90-th*(.2+i*.2)}" width="${tw*(i%2?.5:.7)}" height="1.3" fill="#3C3A35"/>`;}
+  return `<rect x="${50-tw/2}" y="${90-th}" width="${tw}" height="${th+1}" rx="1.2" fill="${p.trunk}"/>${m}
+  <ellipse cx="${50-rx*.35}" cy="${cy+ry*.2}" rx="${rx*.8}" ry="${ry*.82}" fill="${p.c2}"/><ellipse cx="${50+rx*.35}" cy="${cy+ry*.1}" rx="${rx*.8}" ry="${ry*.82}" fill="${p.c2}"/>
+  <ellipse cx="50" cy="${cy-ry*.05}" rx="${rx*.85}" ry="${ry*.9}" fill="${p.c1}"/><ellipse cx="${50-rx*.2}" cy="${cy-ry*.35}" rx="${rx*.3}" ry="${ry*.25}" fill="${p.c3}" opacity=".6"/>`;},
+ cone:(p,t)=>{const H=20+40*t,w0=12+24*t;let s=`<rect x="47.5" y="82" width="5" height="9" fill="${p.trunk}"/>`;
+  for(let i=0;i<3;i++){const yb=86-i*H*.27,yt=yb-H*.46,w=w0*(1-.24*i);s+=`<polygon points="${50-w/2},${yb} 50,${yt} ${50+w/2},${yb}" fill="${i%2?p.c1:p.c2}"/>`;}return s;},
+ cactus:(p,t)=>{const h=18+38*t,w=9+5*t,x=50-w/2;
+  let s=`<rect x="${x}" y="${90-h}" width="${w}" height="${h+1}" rx="${w/2}" fill="${p.c1}"/><path d="M50 ${90-h+5}V88" stroke="${p.c2}" stroke-width="1.2" opacity=".6"/>`;
+  if(t>=.68){s+=`<path d="M${x+1} ${90-h*.4}H${x-6}V${90-h*.66}" stroke="${p.c1}" stroke-width="${w*.55}" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`;
+   s+=`<path d="M${x+w-1} ${90-h*.52}H${x+w+6}V${90-h*.8}" stroke="${p.c1}" stroke-width="${w*.55}" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`;}
+  if(t>=1)s+=`<circle cx="50" cy="${90-h}" r="2.8" fill="#F27BA5"/>`;return s;},
+ palm:(p,t)=>{const H=24+30*t,tx=50+6*t,ty=90-H,k=.55+.55*t;
+  let s=`<path d="M50 90Q51 ${90-H*.5} ${tx} ${ty}" stroke="${p.trunk}" stroke-width="${3+2*t}" stroke-linecap="round" fill="none"/>`;
+  [-75,-40,0,28].forEach((a,i)=>{const d='M0 0Q14 -12 30 5Q14 -3 0 0Z',f=i%2?p.c1:p.c2;
+   s+=`<path d="${d}" transform="translate(${tx} ${ty}) rotate(${a}) scale(${k})" fill="${f}"/><path d="${d}" transform="translate(${tx} ${ty}) scale(-1 1) rotate(${a}) scale(${k})" fill="${f}"/>`;});
+  if(t>=1)s+=`<circle cx="${tx-2}" cy="${ty+3}" r="2.2" fill="#6B4A2E"/><circle cx="${tx+2.5}" cy="${ty+3.5}" r="2.2" fill="#6B4A2E"/>`;return s;},
+ bamboo:(p,t)=>{const hs=[26+34*t,32+34*t,22+30*t],xs=[41,50,59];let s='';
+  hs.forEach((h,i)=>{const x=xs[i];s+=`<rect x="${x-2}" y="${90-h}" width="4" height="${h+1}" rx="2" fill="${p.trunk}"/>`;
+   for(let y=82;y>90-h+4;y-=10)s+=`<rect x="${x-2.5}" y="${y}" width="5" height="1.4" fill="${p.c2}"/>`;
+   if(t>=.68)s+=`<ellipse cx="${x-5}" cy="${90-h+4}" rx="5.5" ry="2" transform="rotate(-30 ${x-5} ${90-h+4})" fill="${p.c1}"/><ellipse cx="${x+5}" cy="${90-h+8}" rx="5.5" ry="2" transform="rotate(30 ${x+5} ${90-h+8})" fill="${p.c2}"/>`;});
+  return s;},
+ willow:(p,t)=>{const tw=2.6+3*t,th=16+22*t,cy=90-th-3*t,r=8+15*t;
+  let s=`<rect x="${50-tw/2}" y="${90-th}" width="${tw}" height="${th+1}" rx="1.4" fill="${p.trunk}"/><circle cx="50" cy="${cy}" r="${r}" fill="${p.c1}"/>`;
+  for(let i=-4;i<=4;i++){const x=50+i*r*.23;s+=`<path d="M${x} ${cy+r*.25}q${i*.6} ${r*.7} ${i*.3} ${r*1.05}" stroke="${p.c2}" stroke-width="1.8" stroke-linecap="round" fill="none"/>`;}return s;},
+ acacia:(p,t)=>{const th=14+20*t,tw=7+7*t;
+  return `<path d="M${50-tw/2-3} 91Q${50-tw/2} ${91-th*.5} ${50-tw/3} ${91-th}H${50+tw/3}Q${50+tw/2} ${91-th*.5} ${50+tw/2+3} 91Z" fill="${p.trunk}"/>
+  <ellipse cx="50" cy="${90-th-2}" rx="${10+19*t}" ry="${5+7*t}" fill="${p.c2}"/><ellipse cx="50" cy="${90-th-5-2*t}" rx="${8+16*t}" ry="${4+6*t}" fill="${p.c1}"/>`;}
+};
+function deadTree(stage){
+ if(stage<=1)return `<path d="M50 90Q50 80 57 77" stroke="#8A7B66" stroke-width="2.6" stroke-linecap="round" fill="none"/><ellipse cx="58" cy="78" rx="5" ry="2.6" transform="rotate(50 58 78)" fill="#A18A66"/>`;
+ const t=[0,0,.38,.68,1][stage],th=18+22*t;
+ return `<rect x="48" y="${90-th}" width="${3+2*t}" height="${th+1}" rx="1.4" fill="#8A8176"/>
+ <path d="M50 ${90-th*.55}l-9-8M51 ${90-th*.78}l10-9M50 ${90-th}l-4-8" stroke="#8A8176" stroke-width="2" stroke-linecap="round" fill="none"/>
+ <ellipse cx="38" cy="88" rx="3" ry="1.2" fill="#A18A66"/><ellipse cx="63" cy="89" rx="2.6" ry="1.1" fill="#A18A66"/>`;
+}
+function treeSVG(id,stage,dead){
+ const p=spOf(id),T=[0,.2,.38,.68,1][stage];
+ let b=`<ellipse cx="50" cy="91" rx="${12+16*(stage/4)}" ry="3.6" fill="var(--ground)"/>`;
+ if(dead)b+=deadTree(stage);
+ else if(stage===0)b+=`<ellipse cx="50" cy="88.5" rx="8" ry="3.4" fill="#7A5A3E"/><ellipse cx="50" cy="86.5" rx="2.6" ry="1.9" fill="#4B3623"/>`;
+ else if(stage===1)b+=`<path d="M50 90V76" stroke="#5DA85F" stroke-width="2.6" stroke-linecap="round" fill="none"/><ellipse cx="45" cy="76" rx="5.5" ry="3" transform="rotate(-25 45 76)" fill="#6DBB6B"/><ellipse cx="55.5" cy="74.5" rx="5.5" ry="3" transform="rotate(25 55.5 74.5)" fill="#58A85A"/>`;
+ else b+=shapes[p.shape](p,T);
+ return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${b}</svg>`;
+}
+const stageFor=p=>p<.08?0:p<.3?1:p<.55?2:p<.8?3:4;
+
+/* ---------- sound ---------- */
+let AC=null,master=null,nodes=[],timers=[],noiseCache={},muted=false,previewT=null;
+function ac(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)();master=AC.createGain();master.connect(AC.destination);}catch(e){return null;}}
+ if(AC.state==='suspended'&&AC.resume)AC.resume();return AC;}
+function noiseBuf(kind){if(noiseCache[kind])return noiseCache[kind];const len=AC.sampleRate*4,b=AC.createBuffer(1,len,AC.sampleRate),d=b.getChannelData(0);let last=0;
+ for(let i=0;i<len;i++){const w=Math.random()*2-1;if(kind==='brown'){last=(last+.02*w)/1.02;d[i]=last*3.5;}else d[i]=w;}
+ noiseCache[kind]=b;return b;}
+function src(kind){const s=AC.createBufferSource();s.buffer=noiseBuf(kind);s.loop=true;nodes.push(s);return s;}
+function gain(v){const g=AC.createGain();g.gain.value=v;nodes.push(g);return g;}
+function filt(type,f,q){const x=AC.createBiquadFilter();x.type=type;x.frequency.value=f;if(q)x.Q.value=q;nodes.push(x);return x;}
+function lfo(freq,depth,target){const o=AC.createOscillator();o.frequency.value=freq;const g=gain(depth);o.connect(g);g.connect(target);o.start();nodes.push(o);}
+function stopSound(){nodes.forEach(n=>{try{if(n.stop)n.stop();}catch(e){}try{n.disconnect();}catch(e){}});nodes=[];timers.forEach(t=>clearTimeout(t));timers=[];}
+function startSound(){
+ stopSound();const id=S.settings.sound;if(id==='none'||muted)return;const a=ac();if(!a)return;master.gain.value=S.settings.volume;
+ if(id==='rain'){const s=src('white'),h=filt('highpass',900),l=filt('lowpass',7000),g=gain(.3);s.connect(h);h.connect(l);l.connect(g);g.connect(master);s.start();
+  const s2=src('brown'),g2=gain(.35);s2.connect(g2);g2.connect(master);s2.start();}
+ else if(id==='wind'){const s=src('brown'),b=filt('bandpass',500,.8),g=gain(1.1);s.connect(b);b.connect(g);g.connect(master);s.start();lfo(.09,260,b.frequency);}
+ else if(id==='waves'){const s=src('brown'),l=filt('lowpass',900),g=gain(.6);s.connect(l);l.connect(g);g.connect(master);s.start();lfo(.11,.45,g.gain);}
+ else if(id==='brown'){const s=src('brown'),g=gain(.7);s.connect(g);g.connect(master);s.start();}
+ else if(id==='birds'){const s=src('brown'),g=gain(.12);s.connect(g);g.connect(master);s.start();
+  const chirp=()=>{if(!AC||!nodes.length)return;const t=AC.currentTime,n=1+Math.floor(Math.random()*3),base=2200+Math.random()*1800;
+   for(let i=0;i<n;i++){const o=AC.createOscillator(),e=AC.createGain();o.type='sine';const st=t+i*.13;o.frequency.setValueAtTime(base,st);o.frequency.exponentialRampToValueAtTime(base*(1.2+Math.random()*.4),st+.09);
+    e.gain.setValueAtTime(0,st);e.gain.linearRampToValueAtTime(.08,st+.02);e.gain.linearRampToValueAtTime(0,st+.1);o.connect(e);e.connect(master);o.start(st);o.stop(st+.12);}
+   timers.push(setTimeout(chirp,900+Math.random()*3200));};chirp();}
+ else if(id==='fire'){const s=src('brown'),l=filt('lowpass',500),g=gain(.55);s.connect(l);l.connect(g);g.connect(master);s.start();
+  const crack=()=>{if(!AC||!nodes.length)return;const t=AC.currentTime,s2=AC.createBufferSource();s2.buffer=noiseBuf('white');const e=AC.createGain(),h=AC.createBiquadFilter();h.type='highpass';h.frequency.value=1500+Math.random()*2500;
+   e.gain.setValueAtTime(.25*Math.random()+.05,t);e.gain.exponentialRampToValueAtTime(.001,t+.03+Math.random()*.04);s2.connect(h);h.connect(e);e.connect(master);s2.start(t,Math.random()*2,.1);
+   timers.push(setTimeout(crack,60+Math.random()*420));};crack();}
+}
+function chime(){if(!S.settings.chime)return;const a=ac();if(!a)return;const t=a.currentTime;
+ [[659,0],[880,.18],[1175,.36]].forEach(([f,d])=>{const o=a.createOscillator(),e=a.createGain();o.type='sine';o.frequency.value=f;e.gain.setValueAtTime(0,t+d);e.gain.linearRampToValueAtTime(.18,t+d+.02);e.gain.exponentialRampToValueAtTime(.001,t+d+.7);o.connect(e);e.connect(a.destination);o.start(t+d);o.stop(t+d+.75);});}
+
+/* ---------- periods & stats ---------- */
+let range='week',offset=0,selId=null,lastResult=null,brk=null,muted0=false,giveArmed=false,giveT=null,runStage=-1;
+function period(r,off){const now=new Date();let from,to,label;
+ if(r==='day'){from=sod(now);from.setDate(from.getDate()+off);to=new Date(from);to.setDate(to.getDate()+1);label=off===0?'Today':off===-1?'Yesterday':from.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'});}
+ else if(r==='week'){from=sod(now);from.setDate(from.getDate()-((from.getDay()+6)%7)+off*7);to=new Date(from);to.setDate(to.getDate()+7);const e=new Date(to);e.setDate(e.getDate()-1);
+  label=off===0?'This week':from.toLocaleDateString(undefined,{day:'numeric',month:'short'})+' – '+e.toLocaleDateString(undefined,{day:'numeric',month:'short'});}
+ else if(r==='month'){from=new Date(now.getFullYear(),now.getMonth()+off,1);to=new Date(from.getFullYear(),from.getMonth()+1,1);label=from.toLocaleDateString(undefined,{month:'long',year:'numeric'});}
+ else{from=new Date(now.getFullYear()+off,0,1);to=new Date(from.getFullYear()+1,0,1);label=String(from.getFullYear());}
+ return{from,to,label};}
+const inP=P=>S.sessions.filter(s=>s.start>=P.from.getTime()&&s.start<P.to.getTime()).sort((a,b)=>a.start-b.start);
+const done=()=>S.sessions.filter(s=>s.status==='done');
+const sum=a=>a.reduce((t,s)=>t+s.minutes,0);
+function streaks(){const days=new Set(done().map(s=>dayKey(s.start)));let cur=0;const d=sod(new Date());if(!days.has(dayKey(d)))d.setDate(d.getDate()-1);
+ while(days.has(dayKey(d))){cur++;d.setDate(d.getDate()-1);}
+ const arr=[...new Set(done().map(s=>sod(s.start).getTime()))].sort((a,b)=>a-b);let best=0,run=0,prev=null;
+ for(const t of arr){if(prev!==null&&Math.round((t-prev)/864e5)===1)run++;else run=1;if(run>best)best=run;prev=t;}return{cur,best};}
+const todayMin=()=>sum(done().filter(s=>dayKey(s.start)===dayKey(Date.now())));
+const hrs=m=>Math.round(m/6)/10+' h';
+const ACH=[
+ {id:'seed',name:'First seed',desc:'Grow your first tree',target:1,val:()=>done().length},
+ {id:'t10',name:'Grove',desc:'Grow 10 trees',target:10,val:()=>done().length},
+ {id:'t50',name:'Woodland',desc:'Grow 50 trees',target:50,val:()=>done().length},
+ {id:'t200',name:'Old growth',desc:'Grow 200 trees',target:200,val:()=>done().length},
+ {id:'h10',name:'Ten hours',desc:'Focus for 10 hours in total',target:600,val:()=>sum(done()),f:hrs},
+ {id:'h100',name:'Hundred hours',desc:'Focus for 100 hours in total',target:6000,val:()=>sum(done()),f:hrs},
+ {id:'s3',name:'Three in a row',desc:'Focus on 3 days in a row',target:3,val:()=>streaks().best},
+ {id:'s7',name:'A full week',desc:'Focus on 7 days in a row',target:7,val:()=>streaks().best},
+ {id:'s30',name:'Thirty days',desc:'Focus on 30 days in a row',target:30,val:()=>streaks().best},
+ {id:'long',name:'Deep dive',desc:'Finish a single session of 2 hours or more',target:120,val:()=>Math.max(0,...done().map(s=>s.minutes)),f:m=>fmtDur(m)},
+ {id:'early',name:'Early bird',desc:'Finish a session that started before 7 am',target:1,val:()=>done().filter(s=>new Date(s.start).getHours()<7).length},
+ {id:'owl',name:'Night owl',desc:'Finish a session that started after 10 pm',target:1,val:()=>done().filter(s=>new Date(s.start).getHours()>=22).length},
+ {id:'coll',name:'Collector',desc:'Unlock 5 tree species',target:5,val:()=>S.unlocked.length},
+ {id:'rich',name:'Coin purse',desc:'Hold 500 coins at once',target:500,val:()=>S.coins}
+];
+function checkAch(silent){const got=[];ACH.forEach(a=>{if(!S.ach.includes(a.id)&&a.val()>=a.target){S.ach.push(a.id);got.push(a.name);}});
+ if(got.length&&!silent)toast('Achievement unlocked: '+got.join(', '));}
+
+/* ---------- toast ---------- */
+let toastT=null;
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),3200);}
+
+/* ---------- session engine ---------- */
+const DC=2*Math.PI*122;
+function startSession(){
+ const st=S.settings;muted=false;
+ S.active={id:uid(),start:Date.now(),mode:st.mode,planned:st.mode==='timer'?st.minutes*60000:0,species:st.species,tag:st.tag||'',lastSeen:Date.now(),hiddenAt:null};
+ lastResult=null;brk=null;giveArmed=false;runStage=-1;save();startSound();render();}
+function progressOf(a,el){return a.planned?Math.min(el/a.planned,1):Math.min(el/(45*60000),1);}
+function finishWith(status,minutes,reason){
+ const a=S.active,el=Date.now()-a.start,stage=status==='done'?4:stageFor(progressOf(a,el)),coins=status==='done'?Math.max(1,Math.floor(minutes/2.5)):0;
+ const rec={id:a.id,start:a.start,end:Date.now(),minutes:minutes,mode:a.mode,tag:a.tag,species:a.species,status,coins,stage};
+ S.sessions.push(rec);S.coins+=coins;S.active=null;lastResult=Object.assign({reason:reason||''},rec);
+ stopSound();if(status==='done'){chime();checkAch(false);}save();document.title='Canopy Timer';render();}
+function complete(min){finishWith('done',min);}
+function die(reason){const a=S.active;const m=Math.floor((Date.now()-a.start)/60000);finishWith('dead',m,reason);}
+function giveUp(){const a=S.active,el=Date.now()-a.start;
+ if(el<10000){S.active=null;stopSound();save();toast('Cancelled. No tree was lost.');render();return;}die('gave');}
+function finishStopwatch(){const a=S.active,m=Math.floor((Date.now()-a.start)/60000);
+ if(m<1){S.active=null;stopSound();save();toast('Sessions under a minute are not kept.');render();return;}complete(m);}
+function tick(){const now=Date.now(),a=S.active;
+ if(a){const g=S.settings.grace*1000;
+  if(a.hiddenAt&&S.settings.wither&&now-a.hiddenAt>g&&!(a.planned&&a.hiddenAt+g>=a.start+a.planned)){die('left');return;}
+  const el=now-a.start;
+  if(a.planned&&el>=a.planned){complete(Math.round(a.planned/60000));return;}
+  if(view==='focus')paintRun(el);
+  if(now-a.lastSeen>=2000){a.lastSeen=now;save();}
+ }else if(brk){const el=now-brk.start;
+  if(el>=brk.dur){brk=null;chime();toast('Break over. Ready for the next tree?');if(view==='focus')render();}
+  else if(view==='focus')paintBreak(el);}
+}
+document.addEventListener('visibilitychange',()=>{const a=S.active;if(!a)return;
+ if(document.hidden){a.hiddenAt=Date.now();save();}
+ else{tick();if(S.active){S.active.hiddenAt=null;save();}}});
+
+/* ---------- dial ---------- */
+function dialHTML(o){const f=o.f,th=f*2*Math.PI,hx=150+122*Math.sin(th),hy=150-122*Math.cos(th);let tk='';
+ for(let i=0;i<12;i++){const an=i*Math.PI/6,s=Math.sin(an),c=Math.cos(an);tk+=`<line x1="${150+100*s}" y1="${150-100*c}" x2="${150+106*s}" y2="${150-106*c}" stroke="var(--line)" stroke-width="2" stroke-linecap="round"/>`;}
+ const attrs=o.interactive?`tabindex="0" role="slider" aria-label="Session length in minutes" aria-valuemin="5" aria-valuemax="180" aria-valuenow="${S.settings.minutes}"`:'role="img" aria-label="Progress"';
+ return `<div class="dialwrap"><svg id="dial" viewBox="0 0 300 300" data-interactive="${o.interactive?1:0}" ${attrs}>
+ <circle cx="150" cy="150" r="122" fill="none" stroke="var(--surface2)" stroke-width="14"/>${tk}
+ <circle id="dArc" cx="150" cy="150" r="122" fill="none" stroke="var(--accent)" stroke-width="14" stroke-linecap="round" stroke-dasharray="${DC*f} ${DC}" transform="rotate(-90 150 150)"/>
+ ${o.interactive?`<circle id="dHandle" cx="${hx}" cy="${hy}" r="14" fill="var(--accent)" stroke="var(--surface)" stroke-width="4"/>`:''}
+ </svg><div class="dialc"><div class="tree" id="dTree">${o.tree||''}</div><div class="time" id="dTime">${o.time}</div><div class="sub" id="dSub">${o.sub||''}</div></div></div>`;}
+function paintDial(m){const f=m/180,th=f*2*Math.PI;const arc=$('#dArc'),h=$('#dHandle'),t=$('#dTime'),d=$('#dial');if(!arc)return;
+ arc.setAttribute('stroke-dasharray',(DC*f)+' '+DC);if(h){h.setAttribute('cx',150+122*Math.sin(th));h.setAttribute('cy',150-122*Math.cos(th));}
+ if(t)t.textContent=fmtClock(m*60000);if(d)d.setAttribute('aria-valuenow',m);
+ document.querySelectorAll('[data-act="preset"]').forEach(b=>b.setAttribute('aria-pressed',String(+b.dataset.v===m)));}
+let dragging=null;
+function setFromEvent(e){const d=$('#dial');if(!d)return;const r=d.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);
+ let an=Math.atan2(dx,-dy);if(an<0)an+=2*Math.PI;let m=Math.round(an/(2*Math.PI)*180/5)*5;const prev=S.settings.minutes;
+ if(m<5)m=prev>90?180:5;if(prev>=150&&m<=30)m=180;if(prev<=30&&m>=150)m=5;m=Math.max(5,Math.min(180,m));
+ if(m!==prev){S.settings.minutes=m;paintDial(m);}}
+document.addEventListener('pointerdown',e=>{const d=e.target.closest&&e.target.closest('#dial[data-interactive="1"]');if(!d)return;dragging=d;try{d.setPointerCapture(e.pointerId);}catch(x){}setFromEvent(e);e.preventDefault();});
+document.addEventListener('pointermove',e=>{if(dragging)setFromEvent(e);});
+document.addEventListener('pointerup',()=>{if(dragging){dragging=null;save();}});
+document.addEventListener('keydown',e=>{const d=e.target.closest&&e.target.closest('#dial[data-interactive="1"]');if(!d)return;
+ let m=S.settings.minutes;if(e.key==='ArrowRight'||e.key==='ArrowUp')m+=5;else if(e.key==='ArrowLeft'||e.key==='ArrowDown')m-=5;else return;
+ m=Math.max(5,Math.min(180,m));S.settings.minutes=m;paintDial(m);save();e.preventDefault();});
+
+/* ---------- views ---------- */
+let view='focus';
+const IC={focus:'<circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/>',forest:'<path d="M12 21v-5M12 3l6 8h-3l4 6H5l4-6H6z"/>',stats:'<path d="M5 20V11M11 20V4M17 20v-7M3 20h18"/>',shop:'<path d="M5 8h14l-1 12H6zM9 8a3 3 0 016 0"/>',settings:'<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>'};
+const NAV=[['focus','Focus'],['forest','Forest'],['stats','Stats'],['shop','Shop'],['settings','Settings']];
+function renderNav(){$('#nav').innerHTML=NAV.map(([id,l])=>`<a href="#${id}" ${id===view?'aria-current="page"':''}><svg viewBox="0 0 24 24" aria-hidden="true">${IC[id]}</svg>${l}</a>`).join('');}
+const tagOf=id=>S.tags.find(t=>t.id===id);
+const tagName=id=>{const t=tagOf(id);return t?t.name:'No tag';};
+
+function goalBar(){const g=S.settings.goal,m=todayMin();return `<div class="card"><div class="row between"><b>Today</b><span class="muted">${fmtDur(m)} of ${fmtDur(g)}</span></div><div class="bar" style="margin-top:8px"><b style="width:${Math.min(100,m/g*100)}%"></b></div></div>`;}
+
+function focusHTML(){
+ const st=S.settings,a=S.active;
+ if(a){const sp=spOf(a.species);return `<div class="stack narrow"><section class="card" style="text-align:center">
+  <div class="muted">Growing your ${esc(sp.name.toLowerCase())}${a.tag?' · '+esc(tagName(a.tag)):''}</div>
+  ${dialHTML({f:0,interactive:false,tree:'',time:'00:00',sub:a.planned?'remaining':'elapsed'})}
+  <p class="hint">${st.wither?`Stay on this tab. Leaving for more than ${st.grace} seconds withers the tree.`:'Tree withering is off. Leave whenever you need to.'}</p>
+  <div class="row" style="justify-content:center;margin-top:14px">
+   ${st.sound!=='none'?`<button class="btn" data-act="mute" id="muteBtn">${muted?'Sound off':'Sound on'}</button>`:''}
+   ${a.planned?'':'<button class="btn primary" data-act="finish">Finish</button>'}
+   <button class="btn danger" data-act="giveup" id="giveBtn">Give up</button></div></section>${goalBar()}</div>`;}
+ if(brk)return `<div class="stack narrow"><section class="card" style="text-align:center"><div class="muted">Break time</div>
+  ${dialHTML({f:0,interactive:false,tree:'',time:'00:00',sub:'Stretch, drink some water'})}
+  <div class="row" style="justify-content:center;margin-top:14px"><button class="btn" data-act="endbreak">Skip break</button></div></section>${goalBar()}</div>`;
+ let res='';
+ if(lastResult){const r=lastResult,sp=spOf(r.species),dead=r.status==='dead';
+  res=`<section class="card result"><div class="big">${treeSVG(r.species,dead?r.stage:4,dead)}</div><div style="min-width:0;flex:1">
+   ${dead?`<b>Your ${esc(sp.name.toLowerCase())} withered</b><p class="muted">${r.reason==='left'?`You left the tab for more than ${st.grace} seconds.`:'You gave up on this one.'} No coins this time.`:
+   `<b>A ${esc(sp.name.toLowerCase())} has grown</b><p class="muted">${fmtDur(r.minutes)}${r.tag?' on '+esc(tagName(r.tag)):''}</p><p><span class="coinline">${COIN}+${r.coins}</span></p>`}
+   <div class="row" style="margin-top:10px">${dead?'':`<button class="btn" data-act="break">Take a ${st.breakMin} min break</button>`}<button class="btn" data-act="dismiss">Close</button></div></div></section>`;}
+ const stopw=st.mode==='stopwatch';
+ return `<div class="stack narrow">${res}
+ <section class="card" style="text-align:center">
+  <div class="seg" role="group" aria-label="Mode"><button data-act="mode" data-v="timer" aria-pressed="${!stopw}">Timer</button><button data-act="mode" data-v="stopwatch" aria-pressed="${stopw}">Stopwatch</button></div>
+  ${dialHTML({f:stopw?0:st.minutes/180,interactive:!stopw,tree:treeSVG(st.species,4),time:stopw?'00:00':fmtClock(st.minutes*60000),sub:stopw?'Counts up until you finish':'Drag the ring to set the length'})}
+  ${stopw?'':`<div class="presets">${[15,25,45,60,90].map(m=>`<button class="chip" data-act="preset" data-v="${m}" aria-pressed="${st.minutes===m}">${m} min</button>`).join('')}</div>`}
+ </section>
+ <section class="card"><h3>Tag</h3><div class="chips">
+  <button class="chip" data-act="tag" data-v="" aria-pressed="${!st.tag}"><i></i>No tag</button>
+  ${S.tags.map(t=>`<button class="chip" data-act="tag" data-v="${t.id}" aria-pressed="${st.tag===t.id}"><i style="background:${esc(t.color)}"></i>${esc(t.name)}</button>`).join('')}</div>
+  <h3 style="margin-top:16px">Tree</h3><div class="spRow">${S.unlocked.map(id=>`<button class="sp" data-act="species" data-v="${id}" aria-pressed="${st.species===id}" title="${esc(spOf(id).name)}" aria-label="${esc(spOf(id).name)}">${treeSVG(id,4)}</button>`).join('')}<a class="sp" href="#shop" title="Get more trees" aria-label="Get more trees">+</a></div>
+  <div class="field" style="margin-top:8px"><label for="soundSel">Ambient sound</label><select id="soundSel" data-field="sound">${SOUNDS.map(([v,l])=>`<option value="${v}" ${st.sound===v?'selected':''}>${l}</option>`).join('')}</select></div>
+ </section>
+ <button class="plant" data-act="start">Plant a ${esc(spOf(st.species).name.toLowerCase())}</button>
+ ${goalBar()}</div>`;}
+
+function paintRun(el){const a=S.active;if(!a)return;const t=$('#dTime'),arc=$('#dArc');if(!t)return;
+ const p=progressOf(a,el);t.textContent=a.planned?fmtClock(a.planned-el):fmtClock(el,true);
+ arc.setAttribute('stroke-dasharray',(DC*p)+' '+DC);
+ const sg=stageFor(p);if(sg!==runStage){runStage=sg;$('#dTree').innerHTML=treeSVG(a.species,sg);}
+ document.title=t.textContent+' · Canopy Timer';}
+function paintBreak(el){const t=$('#dTime'),arc=$('#dArc');if(!t||!brk)return;t.textContent=fmtClock(brk.dur-el);arc.setAttribute('stroke-dasharray',(DC*Math.min(el/brk.dur,1))+' '+DC);}
+
+function periodBar(){const P=period(range,offset);
+ return `<div class="pbar"><div class="seg" role="group" aria-label="Period">${['day','week','month','year'].map(r=>`<button data-act="range" data-v="${r}" aria-pressed="${range===r}">${r[0].toUpperCase()+r.slice(1)}</button>`).join('')}</div>
+ <div class="row" style="flex-wrap:nowrap"><button class="iconbtn" data-act="prev" aria-label="Previous">‹</button><span class="lbl">${esc(P.label)}</span><button class="iconbtn" data-act="next" aria-label="Next" ${offset>=0?'disabled':''}>›</button></div></div>`;}
+function emptyForest(){return `<div class="card empty"><div class="big">${treeSVG('oak',0)}</div><b>No trees in this period yet</b><p class="muted" style="margin:4px 0 14px">Start a session and your first tree will grow here.</p>
+ <div class="row" style="justify-content:center"><a class="btn primary" href="#focus" style="text-decoration:none">Start focusing</a>${S.sessions.length===0?'<button class="btn" data-act="sample">Load a sample forest</button>':''}</div></div>`;}
+function detailHTML(){const s=S.sessions.find(x=>x.id===selId);if(!s)return '';const sp=spOf(s.species),dead=s.status==='dead';
+ return `<div class="card result" id="detail"><div class="big" style="width:76px">${treeSVG(s.species,dead?(s.stage==null?4:s.stage):4,dead)}</div><div style="min-width:0">
+ <b>${esc(sp.name)}${dead?' (withered)':''}</b><p class="muted">${new Date(s.start).toLocaleString(undefined,{weekday:'short',day:'numeric',month:'short',hour:'numeric',minute:'2-digit'})}</p>
+ <p>${fmtDur(s.minutes)} · ${esc(tagName(s.tag))}${s.mode==='stopwatch'?' · stopwatch':''}${s.sample?' · sample':''}</p>${s.coins?`<span class="coinline">${COIN}+${s.coins}</span>`:''}</div></div>`;}
+function forestHTML(){const P=period(range,offset),ss=inP(P),d=ss.filter(s=>s.status==='done'),w=ss.length-d.length;
+ let body='';
+ if(!ss.length)body=emptyForest();
+ else{const small=range==='year'||range==='month'&&ss.length>40;
+  const key=s=>range==='day'?'':range==='year'?new Date(s.start).toLocaleDateString(undefined,{month:'long'}):new Date(s.start).toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'});
+  const groups=[];ss.forEach(s=>{const k=key(s);let g=groups[groups.length-1];if(!g||g.k!==k){g={k,items:[]};groups.push(g);}g.items.push(s);});
+  body=`<div class="card">`+groups.map(g=>`<div class="grp">${g.k?`<h3>${esc(g.k)}</h3>`:''}<div class="grid ${small?'small':''}">${g.items.map(s=>`<button class="tree" data-act="sel" data-v="${s.id}" aria-pressed="${selId===s.id}" aria-label="${esc(spOf(s.species).name)}, ${fmtDur(s.minutes)}, ${s.status==='dead'?'withered':'grown'}">${treeSVG(s.species,s.status==='dead'?(s.stage==null?4:s.stage):4,s.status==='dead')}</button>`).join('')}</div></div>`).join('')+`</div><div id="detailBox">${detailHTML()}</div>`;}
+ return `<div class="stack"><div><h2>Your forest</h2><p class="muted">${d.length} tree${d.length===1?'':'s'} grown · ${fmtDur(sum(d))} focused${w?' · '+w+' withered':''}</p></div>${periodBar()}${body}</div>`;}
+
+function buckets(P,ss){const d=ss.filter(s=>s.status==='done');let n,idx,lab,every;
+ if(range==='day'){n=24;idx=s=>new Date(s.start).getHours();lab=i=>[pad(i)+':00',String(i)];every=3;}
+ else if(range==='week'){n=7;idx=s=>Math.round((sod(s.start)-P.from)/864e5);lab=i=>{const x=new Date(P.from);x.setDate(x.getDate()+i);return[x.toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'short'}),x.toLocaleDateString(undefined,{weekday:'short'})];};every=1;}
+ else if(range==='month'){n=Math.round((P.to-P.from)/864e5);idx=s=>new Date(s.start).getDate()-1;lab=i=>[(i+1)+' '+P.from.toLocaleDateString(undefined,{month:'long'}),String(i+1)];every=5;}
+ else{n=12;idx=s=>new Date(s.start).getMonth();lab=i=>{const x=new Date(P.from.getFullYear(),i,1);return[x.toLocaleDateString(undefined,{month:'long'}),x.toLocaleDateString(undefined,{month:'short'})];};every=1;}
+ const vals=new Array(n).fill(0);d.forEach(s=>{const i=idx(s);if(i>=0&&i<n)vals[i]+=s.minutes;});return{vals,labels:vals.map((_,i)=>lab(i)),every};}
+function chartSVG(b){const W=480,H=220,L=40,R=6,T=12,B=24,pw=W-L-R,ph=H-T-B,mx=Math.max(...b.vals,1);
+ const steps=[5,10,15,20,30,60,120,180,240,360,480,600,1200,2400];const step=steps.find(s=>mx/s<=4)||2400,top=Math.ceil(mx/step)*step;let g='';
+ for(let v=0;v<=top;v+=step){const y=T+ph-v/top*ph;g+=`<line x1="${L}" x2="${W-R}" y1="${y}" y2="${y}" stroke="var(--line)"/><text x="${L-6}" y="${y+4}" text-anchor="end" class="ct">${v>=60?(Math.round(v/6)/10)+'h':v+'m'}</text>`;}
+ const n=b.vals.length,bw=pw/n;
+ b.vals.forEach((v,i)=>{const h=v/top*ph,x=L+i*bw+bw*.18;if(v>0)g+=`<rect x="${x}" y="${T+ph-h}" width="${bw*.64}" height="${Math.max(h,1)}" rx="3" fill="var(--accent)"><title>${esc(b.labels[i][0])}: ${fmtDur(v)}</title></rect>`;
+  if(i%b.every===0)g+=`<text x="${L+i*bw+bw/2}" y="${H-6}" text-anchor="middle" class="ct">${esc(b.labels[i][1])}</text>`;});
+ return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Focus time chart">${g}</svg>`;}
+function statsHTML(){const P=period(range,offset),ss=inP(P),d=ss.filter(s=>s.status==='done'),w=ss.length-d.length,tot=sum(d),st=streaks();
+ const bk=buckets(P,ss);const byTag={};d.forEach(s=>{const k=s.tag&&tagOf(s.tag)?s.tag:'';byTag[k]=(byTag[k]||0)+s.minutes;});
+ const rows=Object.entries(byTag).sort((a,b)=>b[1]-a[1]);
+ const tags=rows.length?rows.map(([k,m])=>{const t=tagOf(k),pc=Math.round(m/tot*100);return `<div style="margin:10px 0"><div class="row between"><span class="row" style="gap:8px"><i style="width:10px;height:10px;border-radius:50%;background:${t?esc(t.color):'var(--muted)'};display:inline-block"></i>${esc(t?t.name:'No tag')}</span><span class="muted">${fmtDur(m)} · ${pc}%</span></div><div class="bar" style="margin-top:6px"><b style="width:${pc}%;background:${t?esc(t.color):'var(--muted)'}"></b></div></div>`;}).join(''):'<p class="muted">No finished sessions in this period.</p>';
+ const ach=ACH.map(a=>{const v=a.val(),got=v>=a.target,f=a.f||(x=>String(x));return `<div class="it ${got?'got':''}"><div><b>${esc(a.name)}</b> <span class="muted">${esc(a.desc)}</span></div><span class="${got?'badge':'muted'}">${got?'Earned':f(Math.min(v,a.target))+' / '+f(a.target)}</span><div class="bar"><b style="width:${Math.min(100,v/a.target*100)}%"></b></div></div>`;}).join('');
+ return `<div class="stack"><div><h2>Stats</h2></div>${periodBar()}
+ <div class="sum"><div class="card"><b>${fmtDur(tot)}</b><span>Focused</span></div><div class="card"><b>${d.length}</b><span>Trees grown</span></div><div class="card"><b>${w}</b><span>Withered</span></div><div class="card"><b>${d.length?fmtDur(tot/d.length):'0m'}</b><span>Average session</span></div></div>
+ <div class="card chartbox"><h3>Focus time</h3>${chartSVG(bk)}</div>
+ <div class="card"><h3>By tag</h3>${tags}</div>
+ <div class="sum"><div class="card"><b>${st.cur} day${st.cur===1?'':'s'}</b><span>Current streak</span></div><div class="card"><b>${st.best} day${st.best===1?'':'s'}</b><span>Longest streak</span></div><div class="card"><b>${fmtDur(sum(done()))}</b><span>All time</span></div></div>
+ <div class="card"><h3>Achievements</h3><div class="ach">${ach}</div></div></div>`;}
+
+function shopHTML(){return `<div class="stack"><div class="row between"><div><h2>Tree shop</h2><p class="muted">Spend coins from finished sessions on new species.</p></div><span class="coinline" style="font-size:22px">${COIN}${S.coins}</span></div>
+ <div class="shop">${SP.map(p=>{const own=S.unlocked.includes(p.id),inuse=S.settings.species===p.id,need=p.cost-S.coins;
+  return `<div class="card"><div class="pic">${treeSVG(p.id,4)}</div><div class="nm">${esc(p.name)}</div>
+  ${own?`<button class="btn ${inuse?'':'primary'}" data-act="use" data-v="${p.id}" ${inuse?'disabled':''}>${inuse?'In use':'Use'}</button>`:
+  `<button class="btn primary" data-act="buy" data-v="${p.id}" ${need>0?'disabled':''}>${COIN.replace('<svg','<svg style="width:15px;height:15px;vertical-align:-3px"')} ${p.cost}</button>${need>0?`<span class="muted" style="font-size:12px">${need} more coins</span>`:''}`}</div>`;}).join('')}</div></div>`;}
+
+function settingsHTML(){const st=S.settings;const exp=esc(JSON.stringify(Object.assign({},S,{active:null}),null,1));
+ return `<div class="stack narrow" style="max-width:640px"><h2>Settings</h2>
+ <section class="card"><h3>Focus</h3>
+  <div class="field"><div><label for="goalIn">Daily goal</label><small>Minutes of focus per day</small></div><input id="goalIn" type="number" min="10" max="1440" step="5" value="${st.goal}" data-field="goal"></div>
+  <div class="field"><div><label for="witherIn">Wither if I leave this tab</label><small>Switching tabs or apps kills the tree</small></div><input id="witherIn" type="checkbox" data-field="wither" ${st.wither?'checked':''}></div>
+  <div class="field"><div><label for="graceIn">Grace period</label><small>How long you can be away</small></div><select id="graceIn" data-field="grace">${[5,15,30,60].map(v=>`<option value="${v}" ${st.grace===v?'selected':''}>${v} seconds</option>`).join('')}</select></div>
+  <div class="field"><div><label for="breakIn">Break length</label><small>Minutes</small></div><input id="breakIn" type="number" min="1" max="60" value="${st.breakMin}" data-field="breakMin"></div>
+  <div class="field"><label for="chimeIn">Chime when a tree finishes</label><input id="chimeIn" type="checkbox" data-field="chime" ${st.chime?'checked':''}></div></section>
+ <section class="card"><h3>Sound</h3>
+  <div class="field"><label for="soundIn">Ambient sound</label><select id="soundIn" data-field="sound">${SOUNDS.map(([v,l])=>`<option value="${v}" ${st.sound===v?'selected':''}>${l}</option>`).join('')}</select></div>
+  <div class="field"><label for="volIn">Volume</label><input id="volIn" type="range" min="0" max="1" step="0.05" value="${st.volume}" data-field="volume"></div>
+  <div class="field"><span class="muted">Hear it for a few seconds</span><button class="btn" data-act="preview" id="prevBtn">Preview</button></div></section>
+ <section class="card"><h3>Appearance</h3><div class="seg" role="group" aria-label="Theme">${['system','light','dark'].map(t=>`<button data-act="theme" data-v="${t}" aria-pressed="${st.theme===t}">${t[0].toUpperCase()+t.slice(1)}</button>`).join('')}</div></section>
+ <section class="card"><h3>Tags</h3>
+  ${S.tags.map(t=>`<div class="tagrow"><input type="color" value="${esc(t.color)}" data-field="tagcolor" data-id="${t.id}" aria-label="Colour for ${esc(t.name)}"><input type="text" value="${esc(t.name)}" maxlength="24" data-field="tagname" data-id="${t.id}" aria-label="Tag name"><span></span><button class="btn danger" data-act="deltag" data-v="${t.id}">Delete</button></div>`).join('')}
+  <div class="row" style="margin-top:10px"><input id="newTag" type="text" placeholder="New tag" maxlength="24" aria-label="New tag name"><button class="btn" data-act="addtag">Add tag</button></div></section>
+ <section class="card"><h3>Your data</h3><p class="muted" style="margin-bottom:10px">Everything stays in this browser. Copy the backup text to move it elsewhere.</p>
+  <textarea id="exportBox" readonly aria-label="Backup text">${exp}</textarea>
+  <div class="row" style="margin:8px 0 16px"><button class="btn" data-act="copyexport">Copy backup</button></div>
+  <textarea id="importBox" placeholder="Paste backup text here" aria-label="Paste backup text"></textarea>
+  <div class="row" style="margin:8px 0 16px"><button class="btn" data-act="doimport">Restore from backup</button></div>
+  <div class="row"><button class="btn" data-act="sample">Add sample sessions</button>${S.sessions.some(s=>s.sample)?'<button class="btn" data-act="clearsample">Remove sample sessions</button>':''}<button class="btn danger" data-act="reset" id="resetBtn">Erase everything</button></div></section></div>`;}
+
+const VIEWS={focus:focusHTML,forest:forestHTML,stats:statsHTML,shop:shopHTML,settings:settingsHTML};
+function render(){$('#coins').textContent=S.coins;renderNav();$('#view').innerHTML=VIEWS[view]();runStage=-1;if(view==='focus'&&(S.active||brk))tick();}
+function route(){const h=location.hash.slice(1);view=VIEWS[h]?h:'focus';render();}
+window.addEventListener('hashchange',route);
+
+/* ---------- sample data ---------- */
+function loadSample(){const now=Date.now();
+ for(let d=27;d>=0;d--){const n=(d%7===6?0:1)+Math.floor(Math.random()*3);let hr=7+Math.floor(Math.random()*3);
+  for(let k=0;k<n;k++){const dt=new Date();dt.setDate(dt.getDate()-d);dt.setHours(hr,Math.floor(Math.random()*50),0,0);if(dt.getTime()>now)continue;
+   const min=[15,25,25,30,45,50,60][Math.floor(Math.random()*7)],dead=Math.random()<.12,m=dead?Math.max(1,Math.floor(min*Math.random()*.8)):min;
+   S.sessions.push({id:uid(),start:dt.getTime(),end:dt.getTime()+m*60000,minutes:m,mode:'timer',tag:S.tags.length?S.tags[Math.floor(Math.random()*S.tags.length)].id:'',species:SP[Math.floor(Math.random()*SP.length)].id,status:dead?'dead':'done',coins:dead?0:Math.floor(m/2.5),stage:dead?1+Math.floor(Math.random()*3):4,sample:true});
+   hr+=2+Math.floor(Math.random()*2);}}
+ S.sessions.sort((a,b)=>a.start-b.start);checkAch(true);save();}
+
+/* ---------- actions ---------- */
+function act(a,el){const v=el.dataset.v,st=S.settings;
+ switch(a){
+  case 'mode':st.mode=v;save();render();break;
+  case 'preset':st.minutes=+v;paintDial(+v);save();break;
+  case 'tag':st.tag=v;save();render();break;
+  case 'species':st.species=v;save();render();break;
+  case 'start':startSession();break;
+  case 'giveup':{const b=$('#giveBtn');if(!giveArmed){giveArmed=true;b.textContent='Tap again to let it wither';b.classList.add('armed');clearTimeout(giveT);giveT=setTimeout(()=>{giveArmed=false;const x=$('#giveBtn');if(x){x.textContent='Give up';x.classList.remove('armed');}},4000);}else{clearTimeout(giveT);giveArmed=false;giveUp();}break;}
+  case 'finish':finishStopwatch();break;
+  case 'mute':muted=!muted;if(muted)stopSound();else startSound();$('#muteBtn').textContent=muted?'Sound off':'Sound on';break;
+  case 'dismiss':lastResult=null;render();break;
+  case 'break':lastResult=null;brk={start:Date.now(),dur:st.breakMin*60000};render();break;
+  case 'endbreak':brk=null;render();break;
+  case 'range':range=v;offset=0;render();break;
+  case 'prev':offset--;render();break;
+  case 'next':if(offset<0){offset++;render();}break;
+  case 'sel':selId=selId===v?null:v;document.querySelectorAll('.tree[data-act="sel"]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===selId)));$('#detailBox').innerHTML=detailHTML();break;
+  case 'buy':{const p=spOf(v);if(S.coins>=p.cost&&!S.unlocked.includes(v)){S.coins-=p.cost;S.unlocked.push(v);st.species=v;checkAch(false);save();toast(p.name+' unlocked and ready to plant.');render();}break;}
+  case 'use':st.species=v;save();toast(spOf(v).name+' selected.');render();break;
+  case 'theme':st.theme=v;applyTheme();save();render();break;
+  case 'addtag':{const i=$('#newTag'),n=i.value.trim();if(!n){toast('Type a name for the tag first.');break;}const pal=['#3B82C4','#C9731B','#8A5CC9','#D0485E','#2E9A7A','#B8A12A'];S.tags.push({id:'t'+uid(),name:n,color:pal[S.tags.length%pal.length]});save();render();break;}
+  case 'deltag':S.tags=S.tags.filter(t=>t.id!==v);if(st.tag===v)st.tag='';save();render();break;
+  case 'preview':if(previewT){clearTimeout(previewT);previewT=null;if(!S.active)stopSound();$('#prevBtn').textContent='Preview';}else{if(st.sound==='none'){toast('Choose a sound first.');break;}muted=false;startSound();$('#prevBtn').textContent='Stop';previewT=setTimeout(()=>{previewT=null;if(!S.active)stopSound();const b=$('#prevBtn');if(b)b.textContent='Preview';},6000);}break;
+  case 'copyexport':{const box=$('#exportBox');const fallback=()=>{box.focus();box.select();toast('Selected. Press copy on your keyboard.');};
+   try{navigator.clipboard.writeText(box.value).then(()=>toast('Backup copied.'),fallback);}catch(e){fallback();}break;}
+  case 'doimport':{try{const o=JSON.parse($('#importBox').value);if(!o||!Array.isArray(o.sessions))throw 0;const d=defaults();S=Object.assign(d,o,{active:null,settings:Object.assign(d.settings,o.settings||{})});save();applyTheme();toast('Backup restored.');render();}catch(e){toast('That text is not a valid backup.');}break;}
+  case 'sample':loadSample();toast('Sample sessions added. You can remove them in Settings.');render();break;
+  case 'clearsample':S.sessions=S.sessions.filter(s=>!s.sample);save();toast('Sample sessions removed.');render();break;
+  case 'reset':{const b=$('#resetBtn');if(!b.classList.contains('armed')){b.classList.add('armed');b.textContent='Tap again to erase everything';setTimeout(()=>{const x=$('#resetBtn');if(x){x.classList.remove('armed');x.textContent='Erase everything';}},4000);}
+   else{stopSound();S=defaults();save();applyTheme();lastResult=null;brk=null;toast('Everything erased.');render();}break;}
+ }}
+document.addEventListener('click',e=>{const el=e.target.closest('[data-act]');if(el)act(el.dataset.act,el);});
+document.addEventListener('change',e=>{const el=e.target.closest('[data-field]');if(!el)return;const f=el.dataset.field,st=S.settings;
+ if(f==='sound'){st.sound=el.value;if(S.active||previewT){muted=false;startSound();}document.querySelectorAll('[data-field="sound"]').forEach(x=>{x.value=el.value;});}
+ else if(f==='goal')st.goal=Math.max(10,Math.min(1440,+el.value||120));
+ else if(f==='breakMin')st.breakMin=Math.max(1,Math.min(60,+el.value||5));
+ else if(f==='grace')st.grace=+el.value;
+ else if(f==='wither')st.wither=el.checked;
+ else if(f==='chime')st.chime=el.checked;
+ else if(f==='tagname'){const t=tagOf(el.dataset.id);if(t&&el.value.trim())t.name=el.value.trim();}
+ else if(f==='tagcolor'){const t=tagOf(el.dataset.id);if(t)t.color=el.value;}
+ save();});
+document.addEventListener('input',e=>{const el=e.target.closest('[data-field="volume"]');if(!el)return;S.settings.volume=+el.value;if(master)master.gain.value=S.settings.volume;save();});
+
+/* ---------- boot ---------- */
+function applyTheme(){const t=S.settings.theme;if(t==='system')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',t);}
+applyTheme();
+(function resume(){const a=S.active;if(!a)return;const g=S.settings.grace*1000,now=Date.now(),away=now-(a.lastSeen||now);
+ if(S.settings.wither&&away>g&&!(a.planned&&a.lastSeen+g>=a.start+a.planned)){die('left');return;}
+ if(a.planned&&now-a.start>=a.planned){complete(Math.round(a.planned/60000));return;}
+ a.hiddenAt=null;a.lastSeen=now;save();muted=true;})();
+route();
+setInterval(tick,250);
+})();
+</script>
+</body>
+</html>

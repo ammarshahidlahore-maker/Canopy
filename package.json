@@ -1,0 +1,27 @@
+{
+  "name": "canopy-timer",
+  "version": "1.0.0",
+  "description": "Canopy, a focus timer where every session grows a tree.",
+  "author": "Canopy",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win --publish never"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.0",
+    "@capacitor/core": "^6.1.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.0",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.canopy.timer",
+    "productName": "Canopy",
+    "files": ["main.js", "www/**"],
+    "directories": { "output": "dist" },
+    "win": { "target": ["portable", "nsis"] }
+  }
+}
